@@ -1,4 +1,4 @@
-# 🚀 LevelUp! Serverless Lab: API Gateway + Lambda + DynamoDB
+# 🚀 Serverless Lab: API Gateway + Lambda + DynamoDB
 
 A hands-on lab to help you **build a serverless CRUD API** using AWS Lambda, API Gateway, and DynamoDB.
 
