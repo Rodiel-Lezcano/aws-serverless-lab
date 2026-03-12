@@ -1,26 +1,105 @@
-# 🚀 Serverless Lab: API Gateway + Lambda + DynamoDB
+<div align="center">
 
-A hands-on lab to help you **build a serverless CRUD API** using AWS Lambda, API Gateway, and DynamoDB.
+# ⚡ AWS Serverless CRUD API Lab
+
+### API Gateway + Lambda + DynamoDB
+
+[![AWS](https://img.shields.io/badge/AWS-%23FF9900.svg?style=for-the-badge&logo=amazonwebservices&logoColor=white)](https://aws.amazon.com/)
+[![Lambda](https://img.shields.io/badge/AWS_Lambda-FF9900?style=for-the-badge&logo=awslambda&logoColor=white)](https://aws.amazon.com/lambda/)
+[![API Gateway](https://img.shields.io/badge/API_Gateway-FF4F8B?style=for-the-badge&logo=amazonapigateway&logoColor=white)](https://aws.amazon.com/api-gateway/)
+[![DynamoDB](https://img.shields.io/badge/DynamoDB-4053D6?style=for-the-badge&logo=amazondynamodb&logoColor=white)](https://aws.amazon.com/dynamodb/)
+[![Python](https://img.shields.io/badge/Python_3.13-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![IAM](https://img.shields.io/badge/IAM-DD344C?style=for-the-badge&logo=amazoniamidentitycenter&logoColor=white)](https://aws.amazon.com/iam/)
+
+<br/>
+
+A hands-on lab to **build, deploy, and test a fully serverless CRUD API** on AWS — from IAM policies to live endpoint testing via Postman and cURL.
+
+</div>
 
 ---
 
-## 🧠 Lab Overview
+## 📑 Table of Contents
 
-This lab walks you through designing and building a simple REST-style API that supports DynamoDB operations (create, read, update, delete, list), backed by a Lambda function and exposed via Amazon API Gateway.
+- [Architecture](#-architecture)
+- [Prerequisites](#-prerequisites)
+- [Supported Operations](#-supported-operations)
+- [Setup Instructions](#%EF%B8%8F-setup-instructions)
+  - [Step 1: Create IAM Policy](#step-1-create-iam-policy)
+  - [Step 2: Create Lambda Execution Role](#step-2-create-lambda-execution-role)
+  - [Step 3: Create Lambda Function](#step-3-create-lambda-function)
+  - [Step 4: Test Lambda Function](#step-4-test-lambda-function)
+  - [Step 5: Create DynamoDB Table](#step-5-create-dynamodb-table)
+  - [Step 6: Create REST API in API Gateway](#step-6-create-rest-api-in-api-gateway)
+  - [Step 7: Deploy the API](#step-7-deploy-the-api)
+- [Run & Validate](#-run--validate)
+- [Cleanup](#-cleanup)
+- [Key Takeaways](#-key-takeaways)
 
-### Architecture Diagram
+---
+
+## 🏗️ Architecture
+
+```
+                    ┌──────────────────────────────────────────────┐
+                    │              AWS Cloud                       │
+                    │                                              │
+  Client           │  ┌──────────────┐    ┌──────────────────┐    │
+  (Postman/cURL)───┼─▶│ API Gateway  │───▶│  Lambda Function │    │
+                    │  │ (REST API)   │    │  (Python 3.13)   │    │
+                    │  │              │    │                  │    │
+                    │  │  POST /      │    │  CRUD Handler    │    │
+                    │  │  DynamoDB    │    │                  │    │
+                    │  │  Manager     │    └───────┬──────────┘    │
+                    │  └──────────────┘            │               │
+                    │                              ▼               │
+                    │                    ┌──────────────────┐      │
+                    │                    │    DynamoDB       │      │
+                    │                    │  lambda-apigateway│      │
+                    │                    │    (Table)        │      │
+                    │                    └──────────────────┘      │
+                    └──────────────────────────────────────────────┘
+```
+
+<details>
+<summary>📸 <strong>Architecture Diagram (Screenshot)</strong></summary>
+<br/>
 
 ![High Level Design](./images/high-level-design.jpg)
 
-### Supported Operations
+</details>
 
-The Lambda function handles the following operations based on your request payload:
+---
 
-- `create`, `read`, `update`, `delete` – DynamoDB item operations
-- `list` – Scan table
-- `echo`, `ping` – For basic testing/debugging
+## 📋 Prerequisites
 
-Example: **Create Item**
+| Requirement | Details |
+|:--|:--|
+| **AWS Account** | Free tier eligible |
+| **IAM Access** | Permission to create roles, policies, Lambda functions, DynamoDB tables, and API Gateway APIs |
+| **API Testing Tool** | [Postman](https://www.postman.com/) or cURL |
+| **AWS Region** | Any region supporting Lambda, API Gateway, and DynamoDB |
+
+---
+
+## ⚙️ Supported Operations
+
+The Lambda function routes requests based on the `operation` field in your JSON payload:
+
+| Operation | Description | DynamoDB Action |
+|:--|:--|:--|
+| `create` | Insert a new item | `PutItem` |
+| `read` | Get a single item by key | `GetItem` |
+| `update` | Modify an existing item | `UpdateItem` |
+| `delete` | Remove an item by key | `DeleteItem` |
+| `list` | Scan all items in a table | `Scan` |
+| `echo` | Return the payload (debug) | — |
+| `ping` | Health check | — |
+
+<details>
+<summary>📋 <strong>Example Payloads</strong></summary>
+
+**Create Item**
 ```json
 {
   "operation": "create",
@@ -34,7 +113,7 @@ Example: **Create Item**
 }
 ```
 
-Example: **Read Item**
+**Read Item**
 ```json
 {
   "operation": "read",
@@ -47,16 +126,43 @@ Example: **Read Item**
 }
 ```
 
+**Delete Item**
+```json
+{
+  "operation": "delete",
+  "tableName": "lambda-apigateway",
+  "payload": {
+    "Key": {
+      "id": "1"
+    }
+  }
+}
+```
+
+**List All Items**
+```json
+{
+  "operation": "list",
+  "tableName": "lambda-apigateway",
+  "payload": {}
+}
+```
+
+</details>
+
 ---
 
 ## 🛠️ Setup Instructions
 
-<details>
-<summary><strong>Step 1: Create IAM Policy</strong></summary>
+### Step 1: Create IAM Policy
 
-1. Open the **IAM Console → Policies**.
-2. Click **Create policy** → select the **JSON** tab.
-3. Paste the following JSON:
+<details>
+<summary>📸 <strong>Expand for step-by-step with screenshots</strong></summary>
+<br/>
+
+1. Open the **IAM Console → Policies**
+2. Click **Create policy** → select the **JSON** tab
+3. Paste the following policy:
 
 ```json
 {
@@ -87,14 +193,21 @@ Example: **Read Item**
 }
 ```
 
-4. Name it `lambda-custom-policy` and click **Create policy**.
+4. Name it `lambda-custom-policy` and click **Create policy**
 
 ![Create policy](./images/create-policy.jpg)
 
 </details>
 
+> **Policy grants:** DynamoDB CRUD operations + CloudWatch Logs for Lambda monitoring.
+
+---
+
+### Step 2: Create Lambda Execution Role
+
 <details>
-<summary><strong>Step 2: Create Lambda Execution Role</strong></summary>
+<summary>📸 <strong>Expand for step-by-step with screenshots</strong></summary>
+<br/>
 
 1. Open **IAM Console → Roles** → **Create Role**
 2. Trusted entity: **AWS Service** → Use case: **Lambda**
@@ -105,18 +218,31 @@ Example: **Read Item**
 
 </details>
 
+> **This role** allows the Lambda function to interact with DynamoDB and write logs to CloudWatch.
+
+---
+
+### Step 3: Create Lambda Function
+
 <details>
-<summary><strong>Step 3: Create Lambda Function</strong></summary>
+<summary>📸 <strong>Expand for step-by-step with screenshots</strong></summary>
+<br/>
 
 1. Open **Lambda Console → Create Function**
-2. Author from scratch:  
-   - Name: `LambdaFunctionOverHttps`  
-   - Runtime: `Python 3.13`  
-   - Existing role: `lambda-apigateway-role`
+2. Author from scratch:
+   - **Name:** `LambdaFunctionOverHttps`
+   - **Runtime:** `Python 3.13`
+   - **Existing role:** `lambda-apigateway-role`
 
 ![Lambda basic info](./images/lambda-basic-info.jpg)
 
-3. Replace the boilerplate code with the following:
+3. Replace the boilerplate code with the handler below
+
+![Lambda Code](./images/lambda-code-paste.jpg)
+
+</details>
+
+**Lambda Handler** — [`lambda_function.py`](./lambda_function.py)
 
 ```python
 from __future__ import print_function
@@ -147,14 +273,15 @@ def lambda_handler(event, context):
         raise ValueError(f'Unrecognized operation "{operation}"')
 ```
 
-![Lambda Code](./images/lambda-code-paste.jpg)
+---
 
-</details>
+### Step 4: Test Lambda Function
 
 <details>
-<summary><strong>Step 4: Test Lambda Function</strong></summary>
+<summary>📸 <strong>Expand for step-by-step with screenshots</strong></summary>
+<br/>
 
-Use this event to test the function with a simple echo:
+Create a test event in the Lambda console with this payload:
 
 ```json
 {
@@ -166,41 +293,62 @@ Use this event to test the function with a simple echo:
 }
 ```
 
+Expected result: the payload is returned as-is.
+
 ![Execute Test](./images/execute-test.jpg)
 
 </details>
 
-<details>
-<summary><strong>Step 5: Create DynamoDB Table</strong></summary>
+---
 
-- Name: `lambda-apigateway`
-- Partition key: `id` (string)
+### Step 5: Create DynamoDB Table
+
+<details>
+<summary>📸 <strong>Expand for step-by-step with screenshots</strong></summary>
+<br/>
+
+| Setting | Value |
+|:--|:--|
+| **Table name** | `lambda-apigateway` |
+| **Partition key** | `id` (String) |
+| **Settings** | Default |
 
 ![Create DynamoDB Table](./images/create-dynamo-table.jpg)
 
 </details>
 
+---
+
+### Step 6: Create REST API in API Gateway
+
 <details>
-<summary><strong>Step 6: Create REST API in API Gateway</strong></summary>
+<summary>📸 <strong>Expand for step-by-step with screenshots</strong></summary>
+<br/>
 
 1. Open **API Gateway Console → Create API → REST API → Build**
-2. Name it `DynamoDBOperations`
+2. API name: `DynamoDBOperations`
 3. Create Resource: `/DynamoDBManager`
-4. Add `POST` method → Integrate with `LambdaFunctionOverHttps`
+4. Add `POST` method → Integration type: **Lambda Function** → select `LambdaFunctionOverHttps`
 
-![Create API Resource](./images/create-resource-name.jpg)  
-![Create Method](./images/create-method-1.jpg)  
+![Create API Resource](./images/create-resource-name.jpg)
+![Create Method](./images/create-method-1.jpg)
 ![Integration](./images/create-lambda-integration.jpg)
 
 </details>
 
+---
+
+### Step 7: Deploy the API
+
 <details>
-<summary><strong>Step 7: Deploy the API</strong></summary>
+<summary>📸 <strong>Expand for step-by-step with screenshots</strong></summary>
+<br/>
 
-1. Click **Actions → Deploy API**
+1. Click **Deploy API**
 2. Stage name: `prod`
+3. Copy the **Invoke URL** — you'll need it for testing
 
-![Deploy API](./images/deploy-api-2.jpg)  
+![Deploy API](./images/deploy-api-2.jpg)
 ![Copy Invoke URL](./images/copy-invoke-url.jpg)
 
 </details>
@@ -209,11 +357,12 @@ Use this event to test the function with a simple echo:
 
 ## 🚀 Run & Validate
 
-You can now invoke your API using:
+### Postman
 
-### ▶️ Postman  
-Set `POST` → Paste Invoke URL  
-Body (raw, JSON):
+1. Set method: **POST**
+2. Paste your Invoke URL + `/DynamoDBManager`
+3. Body → raw → JSON:
+
 ```json
 {
   "operation": "create",
@@ -227,41 +376,73 @@ Body (raw, JSON):
 }
 ```
 
+<details>
+<summary>📸 <strong>Screenshot</strong></summary>
+<br/>
+
 ![Postman Example](./images/create-from-postman.jpg)
 
-### ▶️ Curl
+</details>
+
+### cURL
+
 ```bash
-curl -X POST -d '{"operation":"create","tableName":"lambda-apigateway","payload":{"Item":{"id":"1","name":"Bob"}}}' https://<API>.execute-api.<REGION>.amazonaws.com/prod/DynamoDBManager
+curl -s -X POST \
+  -H "Content-Type: application/json" \
+  -d '{
+    "operation": "create",
+    "tableName": "lambda-apigateway",
+    "payload": {
+      "Item": {"id": "1", "name": "Bob"}
+    }
+  }' \
+  https://<API_ID>.execute-api.<REGION>.amazonaws.com/prod/DynamoDBManager
 ```
 
-### ✅ View Items in DynamoDB
+### Verify in DynamoDB
 
-- Go to the DynamoDB console → `lambda-apigateway` table → Explore items
+Navigate to DynamoDB Console → `lambda-apigateway` table → **Explore table items**
 
-![View Item](./images/dynamo-item.jpg)  
+<details>
+<summary>📸 <strong>Screenshots</strong></summary>
+<br/>
+
+![View Item](./images/dynamo-item.jpg)
 ![Item Details](./images/dynamo-show-item.jpg)
+
+</details>
 
 ---
 
 ## 🧹 Cleanup
 
-To avoid ongoing charges, delete the resources:
+> ⚠️ Delete these resources to avoid ongoing AWS charges:
 
-- **DynamoDB Table:** `lambda-apigateway`
-- **Lambda Function:** `LambdaFunctionOverHttps`
-- **API Gateway API:** `DynamoDBOperations`
+| Resource | Service | Name |
+|:--|:--|:--|
+| REST API | API Gateway | `DynamoDBOperations` |
+| Function | Lambda | `LambdaFunctionOverHttps` |
+| Table | DynamoDB | `lambda-apigateway` |
+| Role | IAM | `lambda-apigateway-role` |
+| Policy | IAM | `lambda-custom-policy` |
+
+---
+
+## 🎯 Key Takeaways
+
+- Built a **fully serverless** REST API with zero infrastructure management
+- Implemented **least-privilege IAM** with a custom policy scoped to DynamoDB + CloudWatch
+- Created a **single Lambda handler** supporting 7 operations via JSON payload routing
+- Deployed via **API Gateway** with a production stage and invoke URL
+- Validated end-to-end with **Postman** and **cURL**
 
 ---
 
-## 📚 Summary
+<div align="center">
 
-In this lab, you:
+**Built by [Rodiel Lezcano](https://github.com/Rodiel-Lezcano)** · Solutions Architect
 
-- Created a secure, scalable serverless backend
-- Integrated API Gateway + Lambda + DynamoDB
-- Learned to invoke and test APIs using Postman/Curl
-- Managed cleanup to avoid AWS charges
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0A66C2?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/rodiellezcano/)
+[![GitHub](https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/Rodiel-Lezcano)
 
-> 🎉 Congrats! You just built and tested a fully functional serverless stack.
-
----
+</div>
