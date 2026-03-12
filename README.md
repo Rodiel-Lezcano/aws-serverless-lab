@@ -44,8 +44,8 @@ A hands-on lab to **build, deploy, and test a fully serverless CRUD API** on AWS
                     ┌──────────────────────────────────────────────┐
                     │              AWS Cloud                       │
                     │                                              │
-  Client           │  ┌──────────────┐    ┌──────────────────┐    │
-  (Postman/cURL)───┼─▶│ API Gateway  │───▶│  Lambda Function │    │
+  Client            │  ┌──────────────┐    ┌──────────────────┐    │
+  (Postman/cURL)────┼─▶│ API Gateway  │───▶│  Lambda Function │    │
                     │  │ (REST API)   │    │  (Python 3.13)   │    │
                     │  │              │    │                  │    │
                     │  │  POST /      │    │  CRUD Handler    │    │
@@ -53,11 +53,11 @@ A hands-on lab to **build, deploy, and test a fully serverless CRUD API** on AWS
                     │  │  Manager     │    └───────┬──────────┘    │
                     │  └──────────────┘            │               │
                     │                              ▼               │
-                    │                    ┌──────────────────┐      │
-                    │                    │    DynamoDB       │      │
-                    │                    │  lambda-apigateway│      │
-                    │                    │    (Table)        │      │
-                    │                    └──────────────────┘      │
+                    │                    ┌───────────────────┐     │
+                    │                    │    DynamoDB       │     │
+                    │                    │  lambda-apigateway│     │
+                    │                    │    (Table)        │     │
+                    │                    └───────────────────┘     │
                     └──────────────────────────────────────────────┘
 ```
 
